@@ -1,0 +1,117 @@
+<div class="fixed inset-0 bg-black/95 flex items-center justify-center p-4 z-50 backdrop-blur-md overflow-y-auto" id="modal-backdrop" onclick="if(event.target.id === 'modal-backdrop') this.remove()">
+    <div class="bg-gray-900 rounded-[40px] max-w-5xl w-full flex flex-col md:flex-row overflow-hidden border border-gray-800 shadow-2xl animate-in zoom-in duration-300" onclick="event.stopPropagation()">
+
+        <div class="md:w-2/5 min-h-[400px] bg-gray-800 relative shrink-0">
+            {% if movie.poster_path %}
+                <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" class="w-full h-full object-cover">
+            {% else %}
+                <div class="w-full h-full flex items-center justify-center text-gray-500">Bez plakátu</div>
+            {% endif %}
+        </div>
+
+        <div class="p-10 flex flex-col flex-1 max-h-[90vh] overflow-y-auto" x-data="{
+            rating: {{ movie.rating or 0 }},
+            comment: `{{ movie.comment or '' }}`,
+            currentStatus: '{{ movie.local_status or movie.status or 'search' }}',
+            async performAction(url, method, body) {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                    body: JSON.stringify(body)
+                });
+                if(res.ok) {
+                    const newStatus = body.status;
+                    // Zavřeme modal
+                    document.getElementById('modal-container').innerHTML = '';
+
+                    if (newStatus) {
+                        // Pokud měníme status, vyvoláme event pro přepnutí tabu
+                        window.dispatchEvent(new CustomEvent('statusChanged', { detail: { newStatus: newStatus } }));
+                    } else {
+                        // Pokud jen ukládáme (status zůstává), obnovíme grid
+                        const app = document.querySelector('[x-data]').__x.$data;
+                        app.loadMovies();
+                    }
+                }
+            }
+        }">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h2 class="text-4xl font-black tracking-tighter italic text-white uppercase">{{ movie.title or movie.name }}</h2>
+                    <p class="text-blue-500 font-bold uppercase text-[10px] mt-2 tracking-widest">Premiéra: {{ (movie.release_date or movie.first_air_date) | format_date }}</p>
+                </div>
+                <button onclick="this.closest('.fixed').remove()" class="text-gray-600 hover:text-white text-4xl leading-none">&times;</button>
+            </div>
+
+            <div class="flex gap-4 mb-6 uppercase font-black text-[10px] tracking-widest">
+                <div class="bg-yellow-500/10 border border-yellow-500/20 px-4 py-2 rounded-2xl text-yellow-500">TMDB: {{ "%.1f"|format(movie.vote_average or 0) }} / 10</div>
+                {% if is_local and movie.rating %}<div class="bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-2xl text-blue-400">Moje: {{ movie.rating }} / 10</div>{% endif %}
+            </div>
+
+            <div class="mb-8">
+                <p class="text-gray-400 leading-relaxed text-sm italic">{{ movie.overview or "Popis není k dispozici." }}</p>
+            </div>
+
+            <div class="bg-black/40 p-6 rounded-3xl border border-gray-800 space-y-4 shadow-inner">
+                <div class="flex items-center justify-between">
+                    <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Moje hodnocení (0-10)</label>
+                    <input type="number" min="0" max="10" x-model="rating" class="bg-gray-900 border border-gray-700 rounded-xl p-2 w-20 text-center text-yellow-500 font-black focus:border-blue-500 outline-none">
+                </div>
+                <textarea x-model="comment" placeholder="Tvé poznámky k filmu..." class="w-full bg-gray-900 border border-gray-700 rounded-2xl p-4 text-sm text-gray-300 h-24 outline-none focus:border-blue-600 transition resize-none"></textarea>
+
+                <div class="flex gap-4 mt-auto font-black text-[10px] tracking-widest uppercase">
+
+                    {% if is_local %}
+                        <button type="button" @click="performAction('/api/movies/{{ movie.tmdb_id }}', 'PUT', {
+                                status: (currentStatus === 'to_watch' ? 'watched' : 'to_watch'),
+                                rating: (currentStatus === 'to_watch' ? parseInt(rating) : null),
+                                comment: comment
+                            })"
+                            class="flex-1 bg-white text-black py-4 rounded-2xl hover:bg-gray-200 transition shadow-lg">
+                             <span x-text="currentStatus === 'to_watch' ? 'Označit zhlédnuté' : 'Do watchlistu'"></span>
+                        </button>
+
+                        <button type="button" @click="performAction('/api/movies/{{ movie.tmdb_id }}', 'PUT', {
+                                status: currentStatus,
+                                rating: (currentStatus === 'to_watch' ? null : parseInt(rating)),
+                                comment: comment
+                            })"
+                            class="px-6 bg-gray-800 text-blue-400 border border-blue-500/30 py-4 rounded-2xl hover:bg-blue-600 hover:text-white transition shadow-lg">
+                            Uložit
+                        </button>
+
+                        <button type="button" hx-delete="/api/movies/{{ movie.tmdb_id }}" class="px-6 bg-red-900/10 text-red-500 py-4 rounded-2xl border border-red-500/20 hover:bg-red-600 hover:text-white transition shadow-lg">Smazat</button>
+
+                    {% else %}
+
+                        <button type="button" @click="performAction('/api/movies', 'POST', {
+                                tmdb_id: {{ movie.id }},
+                                title: '{{ movie.title or movie.name }}',
+                                status: 'to_watch',
+                                rating: null,
+                                comment: comment,
+                                poster_path: '{{ movie.poster_path }}',
+                                overview: '{{ movie.overview }}',
+                                release_date: '{{ movie.release_date or movie.first_air_date }}',
+                                vote_average: {{ movie.vote_average or 0 }}
+                            })"
+                            class="flex-1 bg-blue-600 py-4 rounded-2xl text-white hover:bg-blue-700 transition shadow-lg">Do Watchlistu</button>
+
+                        <button type="button" @click="performAction('/api/movies', 'POST', {
+                                tmdb_id: {{ movie.id }},
+                                title: '{{ movie.title or movie.name }}',
+                                status: 'watched',
+                                rating: parseInt(rating),
+                                comment: comment,
+                                poster_path: '{{ movie.poster_path }}',
+                                overview: '{{ movie.overview }}',
+                                release_date: '{{ movie.release_date or movie.first_air_date }}',
+                                vote_average: {{ movie.vote_average or 0 }}
+                            })"
+                            class="flex-1 bg-green-600 py-4 rounded-2xl text-white hover:bg-green-700 transition shadow-lg">Viděl jsem</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

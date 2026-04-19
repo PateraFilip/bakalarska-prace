@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTMX - Todo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        body { background-color: #000; color: white; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #111827; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 font-sans selection:bg-green-500/30">
+
+    <div class="bg-gray-900/50 p-8 rounded-[40px] border border-gray-800 backdrop-blur-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+        <h1 class="text-4xl font-black text-center text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500 mb-8 uppercase tracking-tighter italic">
+            HTMX Todo
+        </h1>
+
+        <form hx-post="/add" hx-target="#todo-list-container" hx-swap="innerHTML"
+              hx-on::after-request="this.reset()" class="flex gap-4 mb-8">
+            <input type="text" name="text" placeholder="Co je třeba udělat?" autocomplete="off" required
+                   class="flex-1 bg-black/40 border border-gray-700 rounded-2xl p-4 text-white placeholder-gray-500 outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition shadow-inner">
+            <button type="submit"
+                    class="bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-green-900/20 transition transform active:scale-95">
+                Přidat
+            </button>
+        </form>
+
+        <div id="todo-list-container" class="flex flex-col flex-1 overflow-hidden">
+            {% include "list.html" %}
+        </div>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,12 @@
+<div id="grid-target"
+     class="grid gap-px bg-gray-800 border border-gray-700 mx-auto w-fit shadow-2xl"
+     style="grid-template-columns: repeat({{ grid[0]|length }}, 20px);">
+    {% for r in range(grid|length) %}
+        {% for c in range(grid[0]|length) %}
+            <div hx-post="/toggle/{{r}}/{{c}}"
+                 hx-swap="outerHTML"
+                 class="w-5 h-5 border border-gray-700/50 cursor-pointer transition-colors duration-75 {{ 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' if grid[r][c] == 1 else 'bg-gray-900 hover:bg-gray-800' }}">
+            </div>
+        {% endfor %}
+    {% endfor %}
+</div>

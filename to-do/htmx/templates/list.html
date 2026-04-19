@@ -1,0 +1,61 @@
+<div class="flex bg-gray-900 rounded-2xl p-1 border border-gray-800 mb-6 shrink-0">
+    <button hx-post="/filter/all" hx-target="#todo-list-container"
+            class="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all {{ 'bg-gray-800 text-white shadow-lg' if filter == 'all' else 'text-gray-500 hover:text-gray-300' }}">
+        Vše
+    </button>
+    <button hx-post="/filter/active" hx-target="#todo-list-container"
+            class="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all {{ 'bg-gray-800 text-white shadow-lg' if filter == 'active' else 'text-gray-500 hover:text-gray-300' }}">
+        Aktivní
+    </button>
+    <button hx-post="/filter/completed" hx-target="#todo-list-container"
+            class="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all {{ 'bg-gray-800 text-white shadow-lg' if filter == 'completed' else 'text-gray-500 hover:text-gray-300' }}">
+        Hotové
+    </button>
+</div>
+
+<div class="flex flex-col gap-3 overflow-y-auto pr-2 pb-2 custom-scrollbar flex-1">
+
+    {% if not todos %}
+        <div class="flex flex-col items-center justify-center py-12 opacity-50 fade-in">
+            <p class="font-bold text-sm uppercase tracking-widest text-gray-500">Žádné úkoly v seznamu</p>
+        </div>
+    {% endif %}
+
+    {% for todo in todos %}
+    <div class="group flex items-center gap-4 p-4 bg-gray-900/40 border border-gray-800 rounded-2xl hover:border-gray-700 transition-all fade-in {{ 'opacity-50' if todo.completed else '' }}">
+
+        <button hx-post="/toggle/{{ todo.id }}" hx-target="#todo-list-container"
+                class="flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors {{ 'bg-green-500 border-green-500' if todo.completed else 'border-gray-600 hover:border-green-500' }}">
+            {% if todo.completed %}
+                <svg class="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+            {% endif %}
+        </button>
+
+        <span hx-post="/toggle/{{ todo.id }}" hx-target="#todo-list-container"
+              class="flex-1 text-sm font-medium cursor-pointer select-none {{ 'line-through text-gray-500' if todo.completed else 'text-gray-200' }}">
+            {{ todo.text }}
+        </span>
+
+        <button hx-delete="/delete/{{ todo.id }}" hx-target="#todo-list-container"
+                class="text-gray-600 hover:text-red-500 p-2 rounded-lg hover:bg-red-900/20 transition opacity-0 group-hover:opacity-100 focus:opacity-100">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+        </button>
+    </div>
+    {% endfor %}
+</div>
+
+{% set active_count, completed_count = get_counts() %}
+
+<div id="footer-stats" class="mt-6 pt-6 border-t border-gray-800 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-gray-500">
+    <span>
+        {{ active_count }} {{ 'úkol zbývá' if active_count == 1 else ('úkoly zbývají' if active_count >= 2 and active_count <= 4 else 'úkolů zbývá') }}
+    </span>
+
+    {% if completed_count > 0 %}
+    <button hx-post="/clear-completed" hx-target="#todo-list-container" class="hover:text-red-500 transition">
+        Smazat hotové
+    </button>
+    {% endif %}
+</div>

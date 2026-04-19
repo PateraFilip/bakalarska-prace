@@ -1,0 +1,48 @@
+{% for movie in movies %}
+    {% set title_safe = (movie.title or movie.name or '')|lower %}
+
+    <div
+         class="movie-card relative cursor-pointer group flex flex-col bg-gray-900/40 rounded-[32px] overflow-hidden border border-gray-800 hover:border-blue-500/50 transition-all duration-500 shadow-2xl min-h-[450px] w-full"
+
+         data-title="{{ title_safe }}"
+         data-date="{{ movie.release_date or movie.first_air_date or '0000-00-00' }}"
+         data-rate-tmdb="{{ movie.vote_average or 0 }}"
+         data-rate-my="{{ movie.local_rating or movie.rating or 0 }}"
+         data-status="{{ movie.local_status or movie.status or 'search' }}"
+         data-search-source="{{ 'true' if view_type == 'search' else 'false' }}"
+
+         x-data
+         x-show="checkVisibility($el)"
+
+         hx-get="/htmx/modal/{{ 'local' if view_type == 'library' or movie.is_in_library else 'tmdb' }}/{{ movie.tmdb_id or movie.id }}"
+         hx-target="#modal-container"
+         hx-trigger="click"
+    >
+        <div class="aspect-[2/3] relative overflow-hidden bg-gray-800 pointer-events-none">
+            {% if movie.poster_path %}
+                <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" class="w-full h-full object-cover group-hover:scale-110 transition duration-700">
+            {% else %}
+                <div class="w-full h-full flex flex-col items-center justify-center text-gray-600 bg-gray-800 text-[10px] uppercase font-black">Bez plakátu</div>
+            {% endif %}
+
+            <div class="absolute top-4 right-4 flex flex-col gap-2 items-end">
+                {% if view_type == 'library' or movie.is_in_library %}
+                    {% set cur_stat = movie.local_status or movie.status %}
+                    <span class="bg-blue-600 text-white text-[9px] font-black px-3 py-1.5 rounded-full shadow-lg border border-white/10">
+                        {{ 'K ZHLÉDNUTÍ' if cur_stat == 'to_watch' else 'ZHLÉDNUTO' }}
+                    </span>
+                {% endif %}
+                <span class="bg-yellow-500 text-black text-[9px] font-black px-3 py-1.5 rounded-full shadow-lg">★ {{ "%.1f"|format(movie.vote_average or 0) }} <span class="text-[7px] opacity-70 uppercase ml-1">TMDB</span></span>
+                {% set display_r = movie.local_rating or movie.rating %}
+                {% if display_r %}<span class="bg-blue-400 text-black text-[9px] font-black px-3 py-1.5 rounded-full shadow-lg">★ {{ display_r }} <span class="text-[7px] opacity-70 uppercase ml-1">Moje</span></span>{% endif %}
+            </div>
+        </div>
+        <div class="p-6 flex flex-col flex-grow bg-gray-900/60 pointer-events-none">
+            <div class="flex justify-between items-start mb-2 gap-2">
+                <h3 class="font-bold text-sm line-clamp-1 flex-1 text-white tracking-tight">{{ movie.title or movie.name }}</h3>
+                <span class="text-[10px] text-blue-500 font-mono font-black">{{ (movie.release_date or movie.first_air_date or '----')[:4] }}</span>
+            </div>
+            <p class="text-[11px] text-gray-500 line-clamp-3 leading-relaxed italic">{{ movie.overview or "Popis není k dispozici." }}</p>
+        </div>
+    </div>
+{% endfor %}

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTMX - Watchlist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/static/htmx.min.js"></script>
+    <script src="/static/json-enc.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        #loading {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white font-sans min-h-screen" x-data="appData()" x-init="init()">
+
+    <template x-if="!token">
+        <div class="min-h-screen flex items-center justify-center p-4">
+            <div hx-get="/htmx/login-form" hx-trigger="load" hx-swap="innerHTML"></div>
+        </div>
+    </template>
+
+    <div x-show="token" x-cloak>
+        <nav class="bg-black/80 backdrop-blur-xl border-b border-gray-900 p-4 sticky top-0 z-30 shadow-2xl">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                <h1 class="text-2xl font-black text-blue-500 italic uppercase tracking-tighter">WatchList</h1>
+
+                <div class="flex bg-gray-900 rounded-2xl p-1 border border-gray-800">
+                    <button @click="switchTab('to_watch')"
+                        :class="activeTab==='to_watch' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500'"
+                        class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all">K
+                        zhlédnutí</button>
+                    <button @click="switchTab('watched')"
+                        :class="activeTab==='watched' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500'"
+                        class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all">Zhlédnuté</button>
+                    <button @click="switchTab('search')"
+                        :class="activeTab==='search' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500'"
+                        class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all">Hledat</button>
+                </div>
+
+                <div class="flex items-center gap-3 bg-gray-900 px-4 py-2 rounded-full border border-gray-800">
+                    <span class="text-xs font-black text-blue-500 uppercase" x-text="username"></span>
+                    <button @click="logout()" class="text-gray-400 hover:text-red-500 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor"
+                            class="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <main class="max-w-7xl mx-auto p-6">
+            <div x-show="activeTab === 'search'" class="mb-8 max-w-3xl mx-auto">
+                <form hx-get="/htmx/search" hx-target="#movie-grid" hx-indicator="#loading" class="flex gap-3">
+                    <input type="text" name="query"
+                        class="flex-1 p-4 bg-gray-900 border border-gray-800 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 shadow-2xl"
+                        placeholder="Hledat film v TMDB...">
+                    <button
+                        class="bg-blue-600 px-8 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition">Najít</button>
+                </form>
+            </div>
+
+            <div
+                class="bg-gray-900/40 p-6 rounded-[32px] border border-gray-800 mb-8 flex flex-col lg:flex-row gap-6 items-center justify-between shadow-2xl">
+                <div class="flex flex-1 w-full gap-4">
+                    <template x-if="activeTab !== 'search'">
+                        <input type="text" x-model="localSearch"
+                            :placeholder="`Filtr v seznamu ${activeTab === 'to_watch' ? 'K zhlédnutí' : 'Zhlédnuté'}...`"
+                            class="flex-1 bg-black border border-gray-800 p-4 rounded-2xl text-xs outline-none focus:border-blue-600 transition font-bold uppercase tracking-wider">
+                    </template>
+                    <template x-if="activeTab === 'search'">
+                        <div class="flex items-center px-4">
+                            <span class="text-gray-500 text-xs font-bold uppercase tracking-widest">
+                                <span
+                                    x-text="searchCount > 0 ? `Výsledky z TMDB: ${searchCount}` : 'Zadejte hledaný výraz'"></span>
+                            </span>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="flex flex-wrap gap-6 items-center w-full lg:w-auto">
+                    <div class="flex gap-4 border-r border-gray-800 pr-6">
+                        <div class="flex flex-col min-w-[80px]">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-[9px] text-gray-500 uppercase font-black">TMDB Min:</span>
+                                <span x-text="minRating" class="text-xs font-bold text-yellow-500"></span>
+                            </div>
+                            <input type="range" x-model="minRating" min="0" max="10" step="0.5"
+                                class="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-yellow-500">
+                        </div>
+                        <div class="flex flex-col min-w-[80px]">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-[9px] text-gray-500 uppercase font-black">TMDB Max:</span>
+                                <span x-text="maxRating" class="text-xs font-bold text-yellow-500"></span>
+                            </div>
+                            <input type="range" x-model="maxRating" min="0" max="10" step="0.5"
+                                class="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-yellow-500">
+                        </div>
+                    </div>
+                    <div class="flex gap-4 border-r border-gray-800 pr-6" x-show="activeTab == 'watched'">
+                        <div class="flex flex-col min-w-[80px]">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-[9px] text-gray-500 uppercase font-black">Moje Min:</span>
+                                <span x-text="minMyRating" class="text-xs font-bold text-blue-400"></span>
+                            </div>
+                            <input type="range" x-model="minMyRating" min="0" max="10" step="1"
+                                class="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                        </div>
+                        <div class="flex flex-col min-w-[80px]">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-[9px] text-gray-500 uppercase font-black">Moje Max:</span>
+                                <span x-text="maxMyRating" class="text-xs font-bold text-blue-400"></span>
+                            </div>
+                            <input type="range" x-model="maxMyRating" min="0" max="10" step="1"
+                                class="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                        </div>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-[9px] font-black text-gray-500 uppercase mb-1">Řadit</span>
+                        <select x-model="sortBy" @change="sortMovies()"
+                            class="bg-black border border-gray-800 p-2.5 rounded-xl text-xs font-bold outline-none cursor-pointer focus:border-blue-600 transition">
+                            <option value="default">Výchozí</option>
+                            <option value="date_desc">Nejnovější</option>
+                            <option value="date_asc">Nejstarší</option>
+                            <option value="rate_tmdb_desc">TMDB: Nejlepší</option>
+                            <option value="rate_tmdb_asc">TMDB: Nejhůřší</option>
+                            <option value="rate_my_desc">Moje: Nejlepší</option>
+                            <option value="rate_my_asc">Moje: Nejhůřší</option>
+                            <option value="az">A-Z</option>
+                            <option value="za">Z-A</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="loading" class="flex justify-center py-10 w-full">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            </div>
+
+            <div id="count-pill-target" class="mb-6"></div>
+
+            <div id="movie-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-8 w-full">
+            </div>
+
+            <div x-show="!loading && visibleCount === 0"
+                class="flex flex-col items-center justify-center py-20 opacity-50 animate-in fade-in zoom-in duration-500"
+                style="display: none;">
+                <p class="font-bold text-sm uppercase tracking-widest text-gray-500">Žádné filmy neodpovídají filtrům
+                </p>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="modal-container"></div>
+
+    <script>
+        function appData() {
+            return {
+                token: localStorage.getItem('token'),
+                username: localStorage.getItem('username'),
+                activeTab: 'to_watch',
+                localSearch: '',
+                searchCount: 0,
+                visibleCount: 0,
+                loading: false,
+                minRating: 0, maxRating: 10, minMyRating: 0, maxMyRating: 10,
+                sortBy: 'default',
+                originalOrder: [],
+
+                init() {
+                    this.$watch('localSearch', () => this.recalculateVisibility());
+                    this.$watch('minRating', () => this.recalculateVisibility());
+                    this.$watch('maxRating', () => this.recalculateVisibility());
+                    this.$watch('minMyRating', () => this.recalculateVisibility());
+                    this.$watch('maxMyRating', () => this.recalculateVisibility());
+
+                    document.body.addEventListener('htmx:configRequest', (e) => {
+                        if (this.token) e.detail.headers['Authorization'] = `Bearer ${this.token}`;
+                    });
+
+                    document.body.addEventListener('htmx:beforeRequest', () => {
+                        this.loading = true;
+                        document.getElementById('loading').style.display = 'flex';
+                    });
+
+                    document.body.addEventListener('htmx:afterRequest', (e) => {
+                        this.loading = false;
+                        document.getElementById('loading').style.display = 'none';
+
+                        if (e.detail.target.id === 'movie-grid') {
+                            this.originalOrder = Array.from(document.getElementById('movie-grid').children);
+                            setTimeout(() => {
+                                this.recalculateVisibility();
+                                this.sortMovies();
+                            }, 50);
+                        }
+                    });
+
+                    window.addEventListener('statusChanged', (e) => {
+                        this.switchTab(e.detail.newStatus);
+                    });
+
+                    if (this.token) this.loadMovies();
+                },
+
+                switchTab(tab) {
+                    this.activeTab = tab;
+                    this.searchCount = 0;
+                    this.visibleCount = 0;
+                    this.localSearch = '';
+                    document.getElementById('count-pill-target').innerHTML = '';
+
+                    if (tab === 'search') {
+                        document.getElementById('movie-grid').innerHTML = '';
+                    } else {
+                        this.loadMovies();
+                    }
+                },
+
+                loadMovies() {
+                    if (this.activeTab === 'search') return;
+                    htmx.ajax('GET', '/htmx/movies', { target: '#movie-grid' });
+                },
+
+                checkVisibility(el) {
+                    const status = el.dataset.status;
+                    const isSearch = el.dataset.searchSource === 'true';
+                    const title = el.dataset.title || '';
+                    const tmdb = parseFloat(el.dataset.rateTmdb || 0);
+                    const my = parseFloat(el.dataset.rateMy || 0);
+
+                    if (this.activeTab === 'search') {
+                        if (!isSearch) return false;
+                    } else {
+                        if (status !== this.activeTab) return false;
+                    }
+
+                    if (this.activeTab !== 'search' && this.localSearch && !title.includes(this.localSearch.toLowerCase())) return false;
+                    if (tmdb < this.minRating || tmdb > this.maxRating) return false;
+                    if (this.activeTab !== 'search' && (my < this.minMyRating || my > this.maxMyRating)) return false;
+
+                    return true;
+                },
+
+                recalculateVisibility() {
+                    this.$nextTick(() => {
+                        const grid = document.getElementById('movie-grid');
+                        if (!grid) return;
+
+                        const cards = grid.querySelectorAll('.movie-card');
+                        let count = 0;
+                        cards.forEach(el => {
+                            if (this.checkVisibility(el)) count++;
+                        });
+
+                        this.visibleCount = count;
+
+                        this.searchCount = count;
+                    });
+                },
+
+                sortMovies() {
+                    const grid = document.getElementById('movie-grid');
+                    let items = Array.from(grid.children).filter(el => el.classList.contains('movie-card'));
+
+                    if (this.sortBy !== 'default') {
+                        items.sort((a, b) => {
+                            let valA, valB;
+                            if (this.sortBy.startsWith('date')) {
+                                valA = a.getAttribute('data-date') || '0000-00-00'; valB = b.getAttribute('data-date') || '0000-00-00';
+                                return this.sortBy.endsWith('desc') ? valB.localeCompare(valA) : valA.localeCompare(valB);
+                            }
+                            if (this.sortBy.startsWith('rate_tmdb')) {
+                                valA = parseFloat(a.getAttribute('data-rate-tmdb')); valB = parseFloat(b.getAttribute('data-rate-tmdb'));
+                                return this.sortBy.endsWith('desc') ? valB - valA : valA - valB;
+                            }
+                            if (this.sortBy.startsWith('rate_my')) {
+                                valA = parseFloat(a.getAttribute('data-rate-my')); valB = parseFloat(b.getAttribute('data-rate-my'));
+                                return this.sortBy.endsWith('desc') ? valB - valA : valA - valB;
+                            }
+                            if (this.sortBy === 'az' || this.sortBy === 'za') {
+                                valA = a.getAttribute('data-title') || ''; valB = b.getAttribute('data-title') || '';
+                                return this.sortBy === 'az' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                            }
+                        });
+                    } else {
+                        this.originalOrder.forEach(item => { if (grid.contains(item)) grid.appendChild(item); });
+                        return;
+                    }
+                    items.forEach(item => grid.appendChild(item));
+                },
+                logout() { localStorage.clear(); location.reload(); }
+            }
+        }
+    </script>
+</body>
+
+</html>

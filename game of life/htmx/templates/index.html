@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTMX - Game of Life</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        body { background-color: #000; color: white; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 font-mono">
+
+    <div class="bg-gray-900/50 p-8 rounded-[40px] border border-gray-800 backdrop-blur-xl shadow-2xl max-w-full overflow-auto">
+
+        <h1 class="text-4xl font-black text-center text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500 mb-8 uppercase tracking-tighter italic">
+            HTMX Game of Life
+        </h1>
+
+        <div class="flex flex-wrap justify-center gap-6 mb-8 items-end bg-black/40 p-4 rounded-2xl border border-gray-800">
+
+            <form hx-post="/resize" hx-target="#grid-container" class="flex gap-4 items-end">
+                <div class="flex flex-col">
+                    <label class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Řádky</label>
+                    <input type="number" name="rows" value="{{ rows }}" min="5" max="60"
+                           class="w-16 bg-gray-800 border border-gray-700 rounded-lg p-2 text-center text-white font-bold outline-none focus:border-green-500 transition">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Sloupce</label>
+                    <input type="number" name="cols" value="{{ cols }}" min="5" max="60"
+                           class="w-16 bg-gray-800 border border-gray-700 rounded-lg p-2 text-center text-white font-bold outline-none focus:border-green-500 transition">
+                </div>
+                <button type="submit" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg font-bold uppercase text-xs tracking-wider transition">
+                    Změnit
+                </button>
+            </form>
+
+            <div class="w-px h-10 bg-gray-800 mx-2"></div>
+
+            <div class="flex gap-3">
+                <button id="btn-start" onclick="startSimulation()"
+                        class="bg-green-600 hover:bg-green-500 text-white px-6 py-2.5 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-green-900/20 transition">
+                    Start
+                </button>
+                <button id="btn-stop" onclick="stopSimulation()"
+                        class="bg-red-600 hover:bg-red-500 text-white px-6 py-2.5 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-900/20 transition hidden">
+                    Stop
+                </button>
+
+                <button hx-post="/random" hx-target="#grid-container"
+                        class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-bold uppercase text-xs tracking-wider transition">
+                    Náhodně
+                </button>
+                <button hx-post="/reset" hx-target="#grid-container"
+                        class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-400 hover:text-white px-4 py-2.5 rounded-xl font-bold uppercase text-xs tracking-wider transition">
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        <div id="grid-container"
+             hx-post="/step"
+             hx-trigger="step"
+             hx-swap="innerHTML"
+             class="flex justify-center">
+
+            {% include "grid.html" %}
+
+        </div>
+
+    </div>
+
+    <script>
+        let intervalId = null;
+
+        function startSimulation() {
+            if (intervalId) return;
+
+            document.getElementById('btn-start').classList.add('hidden');
+            document.getElementById('btn-stop').classList.remove('hidden');
+
+            intervalId = setInterval(() => {
+                document.getElementById('grid-container').dispatchEvent(new Event('step'));
+            }, 200);
+        }
+
+        function stopSimulation() {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+            document.getElementById('btn-start').classList.remove('hidden');
+            document.getElementById('btn-stop').classList.add('hidden');
+        }
+    </script>
+
+</body>
+</html>

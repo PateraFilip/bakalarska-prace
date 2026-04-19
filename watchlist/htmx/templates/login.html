@@ -1,0 +1,62 @@
+<div class="bg-gray-900 p-8 rounded-3xl w-full max-w-md border border-gray-800 shadow-2xl"
+     x-data="{
+        isRegistering: false,
+        loading: false,
+        async submit(e) {
+            this.loading = true;
+            const formData = new FormData(e.target);
+
+            // Podle React kódu posíláš FormData na oba endpointy
+            const url = this.isRegistering ? '/api/register' : '/api/login';
+
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (res.ok) {
+                    if (this.isRegistering) {
+                        // React: alert('Registrace úspěšná!') -> setIsRegistering(false)
+                        alert('Registrace úspěšná!');
+                        this.isRegistering = false;
+                        e.target.reset();
+                    } else {
+                        // React: setToken, setCurrentUser, localStorage...
+                        const data = await res.json();
+                        localStorage.setItem('token', data.access_token);
+                        localStorage.setItem('username', formData.get('username'));
+                        location.reload(); // HTMX reload pro načtení aplikace
+                    }
+                } else {
+                    const err = await res.json();
+                    alert('Chyba: ' + (err.detail || 'Akce se nezdařila'));
+                }
+            } catch (error) {
+                alert('Chyba autorizace');
+            } finally {
+                this.loading = false;
+            }
+        }
+     }">
+
+    <h2 class="text-3xl font-black text-white mb-8 text-center italic tracking-tighter uppercase">WatchList</h2>
+
+    <form @submit.prevent="submit($event)">
+        <input type="text" name="username" placeholder="Uživatel" required
+               class="w-full p-4 mb-4 bg-gray-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-600 transition">
+
+        <input type="password" name="password" placeholder="Heslo" required
+               class="w-full p-4 mb-6 bg-gray-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-600 transition">
+
+        <button type="submit" :disabled="loading"
+                class="w-full bg-blue-600 py-4 rounded-2xl font-black text-white hover:bg-blue-700 transition uppercase tracking-widest disabled:opacity-50">
+            <span x-text="loading ? 'Pracuji...' : (isRegistering ? 'Registrovat' : 'Vstoupit')"></span>
+        </button>
+
+        <button type="button" @click="isRegistering = !isRegistering"
+                class="w-full mt-4 text-gray-500 text-xs font-bold uppercase hover:text-white transition tracking-widest">
+            <span x-text="isRegistering ? 'Zpět na login' : 'Vytvořit účet'"></span>
+        </button>
+    </form>
+</div>
