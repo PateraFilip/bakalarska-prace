@@ -1,6 +1,6 @@
 # Porovnání moderních technologií pro vývoj webových aplikací
 
-Tento repozitář obsahuje praktickou část mé bakalářské práce obhájené na [Název tvé fakulty/univerzity]. Cílem projektu je poskytnout exaktní srovnání výkonnosti, datové náročnosti a efektivity vývoje šesti různých přístupů k tvorbě webových aplikací: **Vanilla JS, React, Vue.js, Svelte, Angular a HTMX**.
+Tento repozitář obsahuje praktickou část bakalářské práce. Cílem projektu je poskytnout exaktní srovnání výkonnosti, datové náročnosti a efektivity vývoje šesti různých přístupů k tvorbě webových aplikací: **Vanilla JS, React, Vue.js, Svelte, Angular a HTMX**.
 
 ## Naměřená data a výsledky
 
@@ -32,9 +32,9 @@ bakalarska-prace/
 
 | Rozcestník | To-Do List |
 | :---: | :---: |
-| ![Ukázka Rozcestník](cesta/k/obrazku/rozcestnik.png) | ![Ukázka To-Do List](cesta/k/obrazku/todo.png) |
+| ![Ukázka Rozcestník](ukázky%20aplikací/rozcestnik.png) | ![Ukázka To-Do List](ukázky%20aplikací/todo.png) |
 | **Watchlist (TMDB API)** | **Game of Life** |
-| ![Ukázka Watchlist](cesta/k/obrazku/watchlist.png) | ![Ukázka Game of Life](cesta/k/obrazku/gameoflife.png) |
+| ![Ukázka Watchlist](ukázky%20aplikací/watchlist.png) | ![Ukázka Game of Life](ukázky%20aplikací/gameoflife.png) |
 
 ## Návod ke spuštění aplikací
 
